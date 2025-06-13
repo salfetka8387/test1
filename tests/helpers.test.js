@@ -3,6 +3,8 @@ const { validateHhLink, createPrompt } = require('../helpers');
 test('validateHhLink accepts various hh.ru URLs', () => {
   expect(validateHhLink('https://hh.ru/vacancy/123').isValid).toBe(true);
   expect(validateHhLink('http://m.hh.ru/vacancy/456?query=1').vacancyId).toBe('456');
+  expect(validateHhLink('hh.ru/vacancy/789').isValid).toBe(true);
+  expect(validateHhLink('https://spb.hh.ru/vacancy/123/').vacancyId).toBe('123');
   expect(validateHhLink('invalid').isValid).toBe(false);
 });
 
