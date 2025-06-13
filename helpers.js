@@ -2,7 +2,7 @@ function validateHhLink(text='') {
   if (typeof text !== 'string') {
     return { isValid: false };
   }
-  const regex = /^https?:\/\/(?:[\w-]+\.)?hh\.ru\/vacancy\/(\d+)(?:\S*)?/i;
+  const regex = /^(?:https?:\/\/)?(?:[\w-]+\.)?hh\.ru\/vacancy\/(\d+)(?:\/?[^\s]*)?$/i;
   const match = text.trim().match(regex);
   if (match) {
     return { isValid: true, vacancyId: match[1], url: match[0] };
