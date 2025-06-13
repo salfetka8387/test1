@@ -1,0 +1,813 @@
+{
+  "name": "claude 3 test",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "e5e7bcf0-83e1-4218-b7f6-b91a512fef4d",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2140,
+        -120
+      ],
+      "webhookId": "8efa796d-f5ff-4639-ae9e-43317a77f8b0",
+      "credentials": {
+        "telegramApi": {
+          "id": "g2gl9dmaFdGU3EXW",
+          "name": "Theodore HR Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.message.text }}",
+              "operation": "contains",
+              "value2": "/start"
+            }
+          ]
+        }
+      },
+      "id": "a6fced91-e686-4a70-a1c6-86755166ee2a",
+      "name": "Is Start Command",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -1920,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "key": "user_{{ $json.message.from.id }}_state",
+        "options": {}
+      },
+      "id": "6237bbdd-85a6-44f8-902c-943a4414a2cc",
+      "name": "Get User State",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -1700,
+        -20
+      ],
+      "credentials": {
+        "redis": {
+          "id": "gccznUInhAMkeSSm",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "user_{{ $json.message.from.id }}_state",
+        "value": "waiting_for_link"
+      },
+      "id": "99c1537f-2dd8-49dd-9b6a-c408d032fffe",
+      "name": "Set Initial State",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -1700,
+        -220
+      ],
+      "credentials": {
+        "redis": {
+          "id": "gccznUInhAMkeSSm",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.message.chat.id }}",
+        "text": "🚀 Привет! Я помогу создать качественное сопроводительное письмо для вакансии с hh.ru\n\n📋 Как это работает:\n1️⃣ Отправьте ссылку на вакансию\n2️⃣ Выберите стиль письма\n3️⃣ Получите готовое письмо\n\n💡 Отправьте ссылку на вакансию в формате:\nhttps://hh.ru/vacancy/12345678\n\nЖду вашу ссылку! 👇",
+        "additionalFields": {}
+      },
+      "id": "3029ab29-8046-4724-8a3f-38be2abfe755",
+      "name": "Send Welcome",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        -1480,
+        -220
+      ],
+      "webhookId": "ff54b964-776a-44f9-8a26-8ae9c852be22",
+      "credentials": {
+        "telegramApi": {
+          "id": "g2gl9dmaFdGU3EXW",
+          "name": "Theodore HR Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $node['Get User State'].json.value || 'waiting_for_link' }}",
+              "value2": "waiting_for_link"
+            }
+          ]
+        }
+      },
+      "id": "137bdb05-e2c1-4f10-855e-86a9b41e3bbf",
+      "name": "Check State",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -1480,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Валидация ссылки на hh.ru\nconst message = $input.all()[0].json.message.text;\nconst hhRegex = /https:\\/\\/(?:www\\.)?hh\\.ru\\/vacancy\\/(\\d+)/;\nconst match = message.match(hhRegex);\n\nif (match) {\n  return {\n    json: {\n      isValid: true,\n      vacancyId: match[1],\n      url: match[0],\n      chatId: $input.all()[0].json.message.chat.id,\n      userId: $input.all()[0].json.message.from.id\n    }\n  };\n} else {\n  return {\n    json: {\n      isValid: false,\n      chatId: $input.all()[0].json.message.chat.id,\n      userId: $input.all()[0].json.message.from.id,\n      message: message\n    }\n  };\n}"
+      },
+      "id": "0226031a-e092-48cb-86c9-b6765e879689",
+      "name": "Validate HH Link",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1260,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.isValid }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "2d05b440-49e1-4083-af0c-9d3ee421d05b",
+      "name": "Is Valid Link",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -1040,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "❌ Неверный формат ссылки!\n\n✅ Правильный формат:\nhttps://hh.ru/vacancy/12345678\n\n📝 Примеры правильных ссылок:\n• https://hh.ru/vacancy/87654321\n• https://www.hh.ru/vacancy/11111111\n\nПопробуйте еще раз 👇",
+        "additionalFields": {}
+      },
+      "id": "44928f6c-c796-4764-b2f0-f742aac1a7a8",
+      "name": "Send Link Error",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        -820,
+        -20
+      ],
+      "webhookId": "d9cfc796-25e5-4010-926e-531c33cd3dcc",
+      "credentials": {
+        "telegramApi": {
+          "id": "g2gl9dmaFdGU3EXW",
+          "name": "Theodore HR Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.hh.ru/vacancies/{{ $json.vacancyId }}",
+        "options": {}
+      },
+      "id": "ea3f2bb5-f77d-44fd-baad-f14def404b6f",
+      "name": "Get Vacancy Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -820,
+        -480
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $statusCode }}",
+              "value2": 200
+            }
+          ]
+        }
+      },
+      "id": "08975691-2c08-4794-bfc8-0572daa83b32",
+      "name": "Check API Response",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        -480
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Validate HH Link').item.json.chatId }}",
+        "text": "❌ Не удалось получить данные о вакансии.\n\n🔍 Возможные причины:\n• Вакансия удалена или неактивна\n• Неверный ID вакансии\n• Временные проблемы с hh.ru\n\nПопробуйте другую вакансию 👇",
+        "additionalFields": {}
+      },
+      "id": "93c209b2-8630-4f43-9325-112397c23046",
+      "name": "Send API Error",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        -380,
+        -340
+      ],
+      "webhookId": "45e7abcb-6a39-48df-a63a-70968044700b",
+      "credentials": {
+        "telegramApi": {
+          "id": "g2gl9dmaFdGU3EXW",
+          "name": "Theodore HR Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "user_{{ $('Validate HH Link').item.json.userId }}_vacancy",
+        "value": "={{ JSON.stringify($json) }}"
+      },
+      "id": "b603e226-e548-43b4-96b5-d6884205e8a1",
+      "name": "Save Vacancy Data",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -380,
+        -580
+      ],
+      "credentials": {
+        "redis": {
+          "id": "gccznUInhAMkeSSm",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "user_{{ $('Validate HH Link').item.json.userId }}_state",
+        "value": "waiting_for_style"
+      },
+      "id": "013db171-d62c-4113-9c71-493a020d6705",
+      "name": "Update State to Style",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        -580
+      ],
+      "credentials": {
+        "redis": {
+          "id": "gccznUInhAMkeSSm",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Validate HH Link').item.json.chatId }}",
+        "text": "✅ Вакансия найдена: {{ $('Get Vacancy Data').item.json.name }}\n🏢 Компания: {{ $('Get Vacancy Data').item.json.employer.name }}\n\n📝 Выберите стиль сопроводительного письма:\n\n1️⃣ **Строгий** - формальный, деловой тон\n2️⃣ **Продающий** - акцент на достижения и выгоды\n3️⃣ **Креативный** - живой, творческий подход\n\nОтправьте цифру (1, 2 или 3) или название стиля 👇",
+        "additionalFields": {}
+      },
+      "id": "f2b7c93f-6f62-4276-ac95-fb4a1c73f9f5",
+      "name": "Send Style Options",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        60,
+        -580
+      ],
+      "webhookId": "28cfa8f0-2ef8-4e94-bf76-332da478dfc3",
+      "credentials": {
+        "telegramApi": {
+          "id": "g2gl9dmaFdGU3EXW",
+          "name": "Theodore HR Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $node['Get User State'].json.value }}",
+              "value2": "waiting_for_style"
+            }
+          ]
+        }
+      },
+      "id": "272f7220-4779-41a7-b843-4f7f4899e2ab",
+      "name": "Check Style State",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -1240,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Определение стиля письма\nconst message = $input.all()[0].json.message.text.toLowerCase().trim();\nconst userId = $input.all()[0].json.message.from.id;\nconst chatId = $input.all()[0].json.message.chat.id;\n\nlet style = null;\nlet styleName = '';\n\n// Проверка по цифре или названию\nif (message === '1' || message.includes('строг')) {\n  style = 'strict';\n  styleName = 'Строгий';\n} else if (message === '2' || message.includes('продаю') || message.includes('продающ')) {\n  style = 'selling';\n  styleName = 'Продающий';\n} else if (message === '3' || message.includes('креатив') || message.includes('творч')) {\n  style = 'creative';\n  styleName = 'Креативный';\n}\n\nreturn {\n  json: {\n    style: style,\n    styleName: styleName,\n    userId: userId,\n    chatId: chatId,\n    isValid: style !== null\n  }\n};"
+      },
+      "id": "e3ae4c71-d643-42a8-a34a-2dfe83c9dac8",
+      "name": "Parse Style Choice",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1020,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.isValid }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "f6c9b440-35eb-4742-a65f-8d60e6b13b09",
+      "name": "Is Valid Style",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "❌ Неверный выбор стиля!\n\n✅ Доступные варианты:\n1️⃣ Строгий\n2️⃣ Продающий\n3️⃣ Креативный\n\nОтправьте цифру (1, 2 или 3) или название стиля 👇",
+        "additionalFields": {}
+      },
+      "id": "03412420-e725-4430-b2ff-74c31de461fd",
+      "name": "Send Style Error",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        -580,
+        380
+      ],
+      "webhookId": "f11f4383-c3ea-474a-9df0-5a7b67937bbd",
+      "credentials": {
+        "telegramApi": {
+          "id": "g2gl9dmaFdGU3EXW",
+          "name": "Theodore HR Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "key": "user_{{ $json.userId }}_vacancy",
+        "options": {}
+      },
+      "id": "d050cc1d-5ab8-452c-9fb0-bf636d73a226",
+      "name": "Get Saved Vacancy",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        -20
+      ],
+      "credentials": {
+        "redis": {
+          "id": "gccznUInhAMkeSSm",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Формирование промпта для LLM\nconst vacancyData = JSON.parse($node['Get Saved Vacancy'].json.value);\nconst style = $input.all()[0].json.style;\nconst styleName = $input.all()[0].json.styleName;\n\n// Базовые стили\nconst styles = {\n  strict: \"Напиши строгое, формальное сопроводительное письмо в деловом стиле. Используй официальный тон, избегай эмоциональных выражений.\",\n  selling: \"Напиши продающее сопроводительное письмо с акцентом на конкретные достижения, цифры и выгоды для работодателя. Покажи ценность кандидата.\",\n  creative: \"Напиши креативное сопроводительное письмо с живым, творческим подходом. Используй интересные формулировки, но сохраняй профессионализм.\"\n};\n\n// Формирование промпта\nconst prompt = `${styles[style]}\n\n**ДАННЫЕ О ВАКАНСИИ:**\nНазвание: ${vacancyData.name}\nКомпания: ${vacancyData.employer.name}\nОписание: ${vacancyData.description || 'Не указано'}\nТребования: ${vacancyData.key_skills ? vacancyData.key_skills.map(skill => skill.name).join(', ') : 'Не указано'}\nЗарплата: ${vacancyData.salary ? `${vacancyData.salary.from || ''}-${vacancyData.salary.to || ''} ${vacancyData.salary.currency}` : 'Не указана'}\n\n**ТРЕБОВАНИЯ К ПИСЬМУ:**\n- Длина: 150-250 слов\n- Структура: приветствие, мотивация, соответствие требованиям, заключение\n- Персонализация под конкретную вакансию и компанию\n- Без заголовков и подписи\n- Готовый текст для копирования`;\n\nreturn {\n  json: {\n    prompt: prompt,\n    style: style,\n    styleName: styleName,\n    vacancyName: vacancyData.name,\n    companyName: vacancyData.employer.name,\n    userId: $input.all()[0].json.userId,\n    chatId: $input.all()[0].json.chatId\n  }\n};"
+      },
+      "id": "ebb129d8-b14b-4c73-89a7-7c41c91e48e1",
+      "name": "Create LLM Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -380,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "⏳ Генерирую сопроводительное письмо...\n\n📝 Стиль: {{ $json.styleName }}\n🏢 Вакансия: {{ $json.vacancyName }}\n\nПодождите несколько секунд ⏰",
+        "additionalFields": {}
+      },
+      "id": "0df8c0e6-5018-4c89-bcea-93b0f2c5d335",
+      "name": "Send Processing Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        -20
+      ],
+      "webhookId": "29564332-7249-431b-8a35-083f6ca2775d",
+      "credentials": {
+        "telegramApi": {
+          "id": "g2gl9dmaFdGU3EXW",
+          "name": "Theodore HR Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "user_{{ $('Create LLM Prompt').item.json.userId }}_state",
+        "value": "waiting_for_link"
+      },
+      "id": "09c152c0-9ce6-4834-9014-c73c094d1142",
+      "name": "Reset State",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        280,
+        -20
+      ],
+      "credentials": {
+        "redis": {
+          "id": "gccznUInhAMkeSSm",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Create LLM Prompt').item.json.chatId }}",
+        "text": "✅ **Готово! Ваше сопроводительное письмо:**\n\n{{ $json.choices[0].message.content }}\n\n---\n\n🔄 Хотите создать письмо для другой вакансии? Отправьте новую ссылку на hh.ru\n\n💡 Или введите /start для повтора инструкций",
+        "additionalFields": {}
+      },
+      "id": "cf217b4c-d1dd-4f45-a169-9f2ac1227415",
+      "name": "Send Final Result",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        500,
+        -20
+      ],
+      "webhookId": "4e5e7454-76f5-4cae-8776-eba95288c67d",
+      "credentials": {
+        "telegramApi": {
+          "id": "g2gl9dmaFdGU3EXW",
+          "name": "Theodore HR Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.message.chat.id }}",
+        "text": "❓ Неизвестная команда или неверное состояние.\n\n🔄 Начните заново с команды /start\n\nИли отправьте ссылку на вакансию с hh.ru 👇",
+        "additionalFields": {}
+      },
+      "id": "892d35f9-a6ec-4abd-8213-93e113cf0662",
+      "name": "Send Unknown Command",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        -1240,
+        580
+      ],
+      "webhookId": "d80ba29c-500a-4be8-bab7-f288814a2d4d",
+      "credentials": {
+        "telegramApi": {
+          "id": "g2gl9dmaFdGU3EXW",
+          "name": "Theodore HR Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        -20,
+        180
+      ],
+      "id": "0319ffec-7189-4292-8d82-c55169d47f9f",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "deepseek/deepseek-chat-v3-0324:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        340,
+        400
+      ],
+      "id": "cbbc19ba-ab41-413b-b14a-b5aa2c12c854",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "ShbxHoKgzX0F55nP",
+          "name": "OpenRouter account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Is Start Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Start Command": {
+      "main": [
+        [
+          {
+            "node": "Set Initial State",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get User State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get User State": {
+      "main": [
+        [
+          {
+            "node": "Check State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Initial State": {
+      "main": [
+        [
+          {
+            "node": "Send Welcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check State": {
+      "main": [
+        [
+          {
+            "node": "Validate HH Link",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Style State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate HH Link": {
+      "main": [
+        [
+          {
+            "node": "Is Valid Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Valid Link": {
+      "main": [
+        [
+          {
+            "node": "Get Vacancy Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Link Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Vacancy Data": {
+      "main": [
+        [
+          {
+            "node": "Check API Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check API Response": {
+      "main": [
+        [
+          {
+            "node": "Save Vacancy Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send API Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Vacancy Data": {
+      "main": [
+        [
+          {
+            "node": "Update State to Style",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update State to Style": {
+      "main": [
+        [
+          {
+            "node": "Send Style Options",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Style State": {
+      "main": [
+        [
+          {
+            "node": "Parse Style Choice",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Unknown Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Style Choice": {
+      "main": [
+        [
+          {
+            "node": "Is Valid Style",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Valid Style": {
+      "main": [
+        [
+          {
+            "node": "Get Saved Vacancy",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Style Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Saved Vacancy": {
+      "main": [
+        [
+          {
+            "node": "Create LLM Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create LLM Prompt": {
+      "main": [
+        [
+          {
+            "node": "Send Processing Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reset State": {
+      "main": [
+        [
+          {
+            "node": "Send Final Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Processing Message": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Reset State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "aea8977c-ed5c-442f-a9cd-2f3b4779d506",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a1dc4771e374368681e2c1035478ddee8abe3fbe69d72e8ac7541e05cb8b780f"
+  },
+  "id": "tJ0JkjILz2CLhyIU",
+  "tags": []
+}
