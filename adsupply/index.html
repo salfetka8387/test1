@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="robots" content="noindex,nofollow">
+<meta name="description" content="AdSupply: интерактивный макет Telegram-магазина. Агентские аккаунты, карты и услуги. Демо без реальных заказов и платежей.">
+<title>AdSupply — макет Telegram-магазина</title>
+<style>html,body{margin:0;min-height:100%;background:#0c141d;color:#edf3f8;font:16px/1.6 system-ui,sans-serif}main{max-width:480px;margin:15vh auto;padding:24px}h1{font-size:28px}p{color:#91a6b7}button{padding:12px 18px;background:#249cdd;color:#fff;border:0;border-radius:8px;cursor:pointer;font:inherit}</style>
+</head>
+<body>
+<main id="status"><h1>AdSupply</h1><p id="notice" role="status">Загрузка интерактивного макета…</p><p>Агентские аккаунты · Карты · Услуги</p><noscript>Для работы кнопок включите JavaScript.</noscript><button id="retry" hidden onclick="location.reload()">Повторить</button></main>
+<script>
+(async()=>{
+ try{
+  if(!('DecompressionStream' in window))throw new Error('Откройте ссылку в актуальной версии Chrome, Safari, Firefox или Edge.');
+  const parts=await Promise.all([1,2,3,4,5,6,7,8].map(async n=>{
+   const response=await fetch('./part-'+n+'.txt');
+   if(!response.ok)throw new Error('Не удалось загрузить макет. Обновите страницу.');
+   return (await response.text()).trim();
+  }));
+  const bytes=Uint8Array.from(atob(parts.join('')),c=>c.charCodeAt(0));
+  const html=await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+  if(!html.startsWith('<!doctype html>'))throw new Error('Ошибка загрузки макета. Обновите страницу.');
+  document.open();document.write(html);document.close();
+ }catch(error){
+  document.getElementById('notice').textContent=error.message||'Не удалось загрузить макет.';
+  document.getElementById('retry').hidden=false;
+ }
+})();
+</script>
+</body>
+</html>
